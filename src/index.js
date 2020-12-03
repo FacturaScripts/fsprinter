@@ -1,15 +1,16 @@
-let { remote } = require("electron");
+let { ipcRenderer, remote } = require("electron");
 let printers = remote.getCurrentWebContents().getPrinters();
 console.log(printers);
 
+/// load printer list
 printers.map((item, index) => {
-    //write in the screen the printers for choose
     document.getElementById("printer_list").innerHTML +=
       '<option value="' + item.name + '">' + item.name + '</option>';
 });
 
 function prinTest() {
-  alert('test');
+  var printerName = document.getElementById("printer_list").value;
+  ipcRenderer.send('print-test', printerName);
 }
 
 function test2017() {

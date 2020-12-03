@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const { exec } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -19,7 +19,7 @@ function createWindow () {
     win.loadFile('src/index.html');
   }
 
-function prinTicket() {
+function prinTicket(printerName) {
     var esc = '\x1B'; //ESC byte in hex notation
     var newLine = '\x0A'; //LF byte in hex notation
     var cmds = esc + "@"; //Initializes the printer (ESC @)
@@ -47,9 +47,9 @@ function prinTicket() {
             return console.log(err);
         }
 
-        var printCmd = "lp -d POS58 pos.txt";
+        var printCmd = "lp -d " + printerName + " pos.txt";
         if(os.platform() == 'win32') {
-            printCmd = 'RawPrint.exe "TPV" pos.txt';
+            printCmd = 'RawPrint.exe "' + printerName + '" pos.txt';
         }
 
         exec(printCmd, (error, stdout, stderr) => {
@@ -61,7 +61,6 @@ function prinTicket() {
                 console.log(`stderr: ${stderr}`);
                 return;
             }
-            console.log(`stdout: ${stdout}`);
         });
     });
 }
@@ -78,4 +77,9 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+})
+
+ipcMain.on('print-test', (event, arg) => {
+  prinTicket(arg)
+  event.reply('print-test', 'ok')
 })
