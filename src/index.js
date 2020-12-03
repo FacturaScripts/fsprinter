@@ -15,7 +15,9 @@ printers.map((item, index) => {
 });
 
 /// load preferences
-document.getElementById("url_2017").value = settings.getSync('2017.url');
+if(settings.hasSync('2017.url')) {
+  document.getElementById("url_2017").value = settings.getSync('2017.url');
+}
 
 function prinTest() {
   var printerName = document.getElementById("printer_list").value;
@@ -41,7 +43,7 @@ function test2017() {
         return false;
       }
 
-      alert('oki');
+      alert('Datos guardados correctamente');
       settings.setSync('2017', {url: url2017});
     });
     return false;

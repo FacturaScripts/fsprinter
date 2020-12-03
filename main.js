@@ -1,68 +1,97 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const { exec } = require('child_process');
+const fetch = require("node-fetch");
 const fs = require('fs');
 const os = require('os');
+const settings = require('electron-settings');
+
+function connect2017(params) {
+  console.log('2017 request')
+  if(settings.hasSync('2017.url')) {
+    var url2017 = settings.getSync('2017.url');
+    fetch(url2017 + '/api.php?v=2&f=remote_printer&' + params).then(function(response) {
+      response.text().then(function (body) {
+        /// save body response to file
+        fs.writeFile("pos.txt", body, function(err) {
+          if(err) {
+            return console.log(err);
+          }
+
+          prinTicket(settings.getSync('printer.name'));
+        });
+      });
+    });
+  }
+}
+
+function connect2020(params) {
+  console.log('2020 request')
+}
 
 function createWindow () {
-    const win = new BrowserWindow({
-      width: 900,
-      height: 600,
-      webPreferences: {
-        contextIsolation: false,
-        enableRemoteModule: true,
-        nodeIntegration: true
-      }
-    })
+  const win = new BrowserWindow({
+    width: 900,
+    height: 600,
+    webPreferences: {
+      contextIsolation: false,
+      enableRemoteModule: true,
+      nodeIntegration: true
+    }
+  })
   
-    win.removeMenu();
-    win.webContents.openDevTools();
-    win.loadFile('src/index.html');
-  }
+  win.removeMenu();
+  win.webContents.openDevTools();
+  win.loadFile('src/index.html');
+}
+
+function prinTesTicket(printerName) {
+  var esc = '\x1B'; //ESC byte in hex notation
+  var newLine = '\x0A'; //LF byte in hex notation
+  var cmds = esc + "@"; //Initializes the printer (ESC @)
+  cmds += esc + '!' + '\x38'; //Emphasized + Double-height + Double-width mode selected (ESC ! (8 + 16 + 32)) 56 dec => 38 hex
+  cmds += 'PRUEBA'; //text to print
+  cmds += newLine + newLine;
+  cmds += esc + '!' + '\x00'; //Character font A selected (ESC ! 0)
+  cmds += 'COOKIES                   5.00'; 
+  cmds += newLine;
+  cmds += 'MILK 65 Fl oz             3.78';
+  cmds += newLine + newLine;
+  cmds += 'SUBTOTAL                  8.78';
+  cmds += newLine;
+  cmds += 'TAX 5%                    0.44';
+  cmds += newLine;
+  cmds += 'TOTAL                     9.22';
+  cmds += newLine;
+  cmds += 'CASH TEND                10.00';
+  cmds += newLine;
+  cmds += 'CASH DUE                  0.78';
+  cmds += newLine + newLine + newLine + newLine;
+
+  fs.writeFile("pos.txt", cmds, function(err) {
+    if(err) {
+      return console.log(err);
+    }
+
+    prinTicket(printerName);
+  });
+}
 
 function prinTicket(printerName) {
-    var esc = '\x1B'; //ESC byte in hex notation
-    var newLine = '\x0A'; //LF byte in hex notation
-    var cmds = esc + "@"; //Initializes the printer (ESC @)
-    cmds += esc + '!' + '\x38'; //Emphasized + Double-height + Double-width mode selected (ESC ! (8 + 16 + 32)) 56 dec => 38 hex
-    cmds += 'PRUEBA'; //text to print
-    cmds += newLine + newLine;
-    cmds += esc + '!' + '\x00'; //Character font A selected (ESC ! 0)
-    cmds += 'COOKIES                   5.00'; 
-    cmds += newLine;
-    cmds += 'MILK 65 Fl oz             3.78';
-    cmds += newLine + newLine;
-    cmds += 'SUBTOTAL                  8.78';
-    cmds += newLine;
-    cmds += 'TAX 5%                    0.44';
-    cmds += newLine;
-    cmds += 'TOTAL                     9.22';
-    cmds += newLine;
-    cmds += 'CASH TEND                10.00';
-    cmds += newLine;
-    cmds += 'CASH DUE                  0.78';
-    cmds += newLine + newLine + newLine + newLine;
+  var printCmd = "lp -d " + printerName + " pos.txt";
+  if(os.platform() == 'win32') {
+    printCmd = 'RawPrint.exe "' + printerName + '" pos.txt';
+  }
 
-    fs.writeFile("pos.txt", cmds, function(err) {
-        if(err) {
-            return console.log(err);
-        }
-
-        var printCmd = "lp -d " + printerName + " pos.txt";
-        if(os.platform() == 'win32') {
-            printCmd = 'RawPrint.exe "' + printerName + '" pos.txt';
-        }
-
-        exec(printCmd, (error, stdout, stderr) => {
-            if (error) {
-                console.log(`error: ${error.message}`);
-                return;
-            }
-            if (stderr) {
-                console.log(`stderr: ${stderr}`);
-                return;
-            }
-        });
-    });
+  exec(printCmd, (error, stdout, stderr) => {
+    if (error) {
+      console.log(`error: ${error.message}`);
+      return;
+    }
+    if (stderr) {
+      console.log(`stderr: ${stderr}`);
+      return;
+    }
+  });
 }
 
 app.whenReady().then(createWindow)
@@ -80,6 +109,21 @@ app.on('activate', () => {
 })
 
 ipcMain.on('print-test', (event, arg) => {
-  prinTicket(arg)
-  event.reply('print-test', 'ok')
+  prinTesTicket(arg);
+  event.reply('print-test', 'ok');
 })
+
+/// http server
+const http = require('http');
+const requestListener = function (req, res) {
+  res.writeHead(200);
+  res.end('fsprinter 0.0.1');
+  console.log('http request: ' + req.url);
+  if(req.url.substring(0, 12) == '/?documento=') {
+    connect2020(req.url.substring(2));
+  } else if(req.url.substring(0, 11) == '/?terminal=') {
+    connect2017(req.url.substring(2));
+  }
+}
+const server = http.createServer(requestListener);
+server.listen(10080);
