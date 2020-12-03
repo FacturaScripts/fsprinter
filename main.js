@@ -1,6 +1,23 @@
+const { app, BrowserWindow } = require('electron');
 const { exec } = require('child_process');
 const fs = require('fs');
 const os = require('os');
+
+function createWindow () {
+    const win = new BrowserWindow({
+      width: 900,
+      height: 600,
+      webPreferences: {
+        contextIsolation: false,
+        enableRemoteModule: true,
+        nodeIntegration: true
+      }
+    })
+  
+    win.removeMenu();
+    win.webContents.openDevTools();
+    win.loadFile('src/index.html');
+  }
 
 function prinTicket() {
     var esc = '\x1B'; //ESC byte in hex notation
@@ -49,4 +66,16 @@ function prinTicket() {
     });
 }
 
-prinTicket();
+app.whenReady().then(createWindow)
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+})
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+})
