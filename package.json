@@ -11,5 +11,8 @@
   "license": "LGPL-3.0",
   "devDependencies": {
     "electron": "^11.0.3"
+  },
+  "dependencies": {
+    "electron-settings": "^4.0.2"
   }
 }
