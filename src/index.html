@@ -2,18 +2,105 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>fsprinter 0.0.1</title>
+    <title>fsprinter 0.1.0</title>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
+    <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css" />
 </head>
-<body style="background: white;">
-    <h1>Impresora</h1>
-    <select id="printer_list" name="printer"></select>
-    <br/>
-    <button onclick="prinTest();">Ticket de prueba</button>
-    <h2>FacturaScripts 2017</h2>
-    <input type="text" id="url_2017" placeholder="https://" />
-    <button onclick="test2017();">Comprobar</button>
+<body>
+    <div class="container mb-4 mt-4">
+        <div class="row">
+            <div class="col">
+                <h1 class="h3 mb-1">Impresora</h1>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-8">
+                <div class="mb-3">
+                    <select class="form-select" id="printer_list" name="printer"></select>
+                    <div class="form-text">Selecciona la impresora de tickets que quieras utilizar.</div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="mb-3">
+                    <button class="btn btn-primary" onclick="prinTest();">Seleccionar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Nav tabs -->
+    <ul class="nav nav-tabs nav-fill" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link active" id="fs2020-tab" data-toggle="tab" href="#fs2020" role="tab" aria-controls="fs2020" aria-selected="true">
+                2020
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link" id="fs2017-tab" data-toggle="tab" href="#fs2017" role="tab" aria-controls="fs2017" aria-selected="false">
+                2017
+            </a>
+        </li>
+    </ul>
+    <!-- Tab panes -->
+    <div class="tab-content">
+        <div class="tab-pane active" id="fs2020" role="tabpanel" aria-labelledby="fs2020-tab">
+            <div class="container mt-4">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="url_2020" placeholder="https://" />
+                            <div class="form-text">
+                                Para conectar con FacturaScripts 2020 escribe aquí la url donde tengas FacturaScripts.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-12">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="key_2020" placeholder="Clave de API" />
+                            <div class="form-text">
+                                También necesitas una clave de API. Puedes crearla desde FacturaScripts,
+                                en el menú Administrador &gt; Panel de control &gt; API keys.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="mb-3">
+                            <button class="btn btn-primary" onclick="test2020();">Comprobar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane" id="fs2017" role="tabpanel" aria-labelledby="fs2017-tab">
+            <div class="container mt-4">
+                <div class="row">
+                    <div class="col-sm-12">
+                        <div class="mb-3">
+                            <input type="text" class="form-control" id="url_2017" placeholder="https://" />
+                            <div class="form-text">
+                                Para conectar con FacturaScripts 2017 escribe aquí la url donde tengas FacturaScripts.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="mb-3">
+                            <button class="btn btn-primary" onclick="test2017();">Comprobar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Bottom bar -->
+    <nav class="navbar fixed-bottom navbar-light bg-warning">
+        <div class="container-fluid">
+            <span class="navbar-text">
+                Si cierras esta aplicación no podrás imprimir tickets.
+            </span>
+        </div>
+    </nav>
+
+    <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="index.js"></script>
 </body>
 </html>

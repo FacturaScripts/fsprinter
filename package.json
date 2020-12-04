@@ -1,6 +1,6 @@
 {
   "name": "fsprinter",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -13,6 +13,7 @@
     "electron": "^11.0.3"
   },
   "dependencies": {
+    "bootstrap": "5.0.0-alpha3",
     "electron-settings": "^4.0.2",
     "node-fetch": "^2.6.1"
   }

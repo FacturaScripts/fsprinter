@@ -11,6 +11,10 @@ function connect2017(params) {
     var url2017 = settings.getSync('2017.url');
     fetch(url2017 + '/api.php?v=2&f=remote_printer&' + params).then(function(response) {
       response.text().then(function (body) {
+        if(0 == body.trim().length) {
+          return;
+        }
+
         /// save body response to file
         fs.writeFile("pos.txt", body, function(err) {
           if(err) {
@@ -30,7 +34,7 @@ function connect2020(params) {
 
 function createWindow () {
   const win = new BrowserWindow({
-    width: 900,
+    width: 600,
     height: 600,
     webPreferences: {
       contextIsolation: false,
@@ -40,7 +44,7 @@ function createWindow () {
   })
   
   win.removeMenu();
-  win.webContents.openDevTools();
+  //win.webContents.openDevTools();
   win.loadFile('src/index.html');
 }
 
