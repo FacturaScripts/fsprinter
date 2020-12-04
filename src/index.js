@@ -1,6 +1,7 @@
-let { ipcRenderer, remote } = require("electron");
-let printers = remote.getCurrentWebContents().getPrinters();
-let settings = require('electron-settings');
+const { ipcRenderer, remote } = require("electron");
+const axios = require('axios');
+const printers = remote.getCurrentWebContents().getPrinters();
+const settings = require('electron-settings');
 
 /// load printer list
 var selectedPrinter = settings.getSync('printer.name');
@@ -17,6 +18,10 @@ printers.map((item, index) => {
 /// load preferences
 if(settings.hasSync('2017.url')) {
   document.getElementById("url_2017").value = settings.getSync('2017.url');
+}
+if(settings.hasSync('2020.url')) {
+  document.getElementById("url_2020").value = settings.getSync('2020.url');
+  document.getElementById("key_2020").value = settings.getSync('2020.key');
 }
 
 function prinTest() {
@@ -51,5 +56,33 @@ function test2017() {
 }
 
 function test2020() {
-  alert('test 2020');
+  var url2020 = document.getElementById("url_2020").value;
+  if(url2020.substring(0, 7) != 'http://' && url2020.substring(0, 8) != 'https://') {
+    alert('URL incorrecta');
+    return false;
+  }
+
+  var key2020 = document.getElementById("key_2020").value;
+  if(0 == key2020.length) {
+    alert('Se necesita una API key');
+    return false;
+  }
+
+  const apiClient = axios.create({
+    baseURL: url2020,
+    headers: {
+      Token: key2020
+    }
+  });
+  apiClient.get('/api/3').then(function (response) {
+    // handle success
+    console.log(response);
+    alert('Datos guardados correctamente');
+    settings.setSync('2020', {url: url2020, key: key2020});
+  })
+  .catch(function (error) {
+    // handle error
+    console.log(error);
+    alert('Error al conectar');
+  });
 }

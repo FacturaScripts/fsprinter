@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const { exec } = require('child_process');
+const axios = require('axios');
 const fetch = require("node-fetch");
 const fs = require('fs');
 const os = require('os');
@@ -30,6 +31,28 @@ function connect2017(params) {
 
 function connect2020(params) {
   console.log('2020 request')
+  if(settings.hasSync('2020.url')) {
+    const apiClient = axios.create({
+      baseURL: settings.getSync('2020.url'),
+      headers: {
+        Token: settings.getSync('2020.key')
+      }
+    });
+    apiClient.get('/api/3/ticketes/' + params).then(function (response) {
+      /// save body response to file
+      fs.writeFile("pos.txt", response.data.text, function(err) {
+        if(err) {
+          return console.log(err);
+        }
+
+        prinTicket(settings.getSync('printer.name'));
+      });
+    })
+    .catch(function (error) {
+      // handle error
+      console.log(error);
+    });
+  }
 }
 
 function createWindow () {
@@ -124,7 +147,7 @@ const requestListener = function (req, res) {
   res.end('fsprinter 0.0.1');
   console.log('http request: ' + req.url);
   if(req.url.substring(0, 12) == '/?documento=') {
-    connect2020(req.url.substring(2));
+    connect2020(req.url.substring(12));
   } else if(req.url.substring(0, 11) == '/?terminal=') {
     connect2017(req.url.substring(2));
   }
