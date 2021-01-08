@@ -106,7 +106,7 @@ function prinTesTicket(printerName) {
 function prinTicket(printerName) {
   var printCmd = "lp -d " + printerName + " pos.txt";
   if(os.platform() == 'win32') {
-    printCmd = 'RawPrint.exe "' + printerName + '" pos.txt';
+    printCmd = app.getAppPath() + "\\" + 'RawPrint.exe "' + printerName + '" pos.txt';
   }
 
   exec(printCmd, (error, stdout, stderr) => {
