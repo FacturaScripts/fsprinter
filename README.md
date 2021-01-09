@@ -6,3 +6,8 @@ Electron app to connect printers to FacturaScripts.
 npm install
 npm start
 ```
+
+## Build executable
+```
+npm run make
+```
