@@ -22,6 +22,8 @@ if(settings.hasSync('2017.url')) {
 if(settings.hasSync('2020.url')) {
   document.getElementById("url_2020").value = settings.getSync('2020.url');
   document.getElementById("key_2020").value = settings.getSync('2020.key');
+  document.getElementById("cut_code_2020").value = settings.getSync('2020.cut');
+  document.getElementById("open_code_2020").value = settings.getSync('2020.open');
 }
 
 function prinTest() {
@@ -56,6 +58,9 @@ function test2017() {
 }
 
 function test2020() {
+  var cutCode = document.getElementById("cut_code_2020").value ?? '';
+  var openCode = document.getElementById("open_code_2020").value ?? '';
+
   var url2020 = document.getElementById("url_2020").value;
   if(url2020.substring(0, 7) != 'http://' && url2020.substring(0, 8) != 'https://') {
     alert('URL incorrecta');
@@ -78,7 +83,7 @@ function test2020() {
     // handle success
     console.log(response);
     alert('Datos guardados correctamente');
-    settings.setSync('2020', {url: url2020, key: key2020});
+    settings.setSync('2020', {url: url2020, key: key2020, cut: cutCode, open: openCode});
   })
   .catch(function (error) {
     // handle error
