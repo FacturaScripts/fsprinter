@@ -3,6 +3,17 @@ const axios = require('axios');
 const printers = remote.getCurrentWebContents().getPrinters();
 const settings = require('electron-settings');
 
+/// timer 2017 functions
+function timer2017() {
+  ipcRenderer.send('timer-2017');
+}
+function setTimer2017() {
+  if(settings.hasSync('2017.url') && document.getElementById("terminal_2017").value != '0' && document.getElementById("timer_2017").value != '0') {
+    var seconds = parseInt(document.getElementById("timer_2017").value);
+    var myTimer2017 = setInterval(timer2017, seconds * 1000);
+  }
+}
+
 /// load printer list
 var selectedPrinter = settings.getSync('printer.name');
 printers.map((item, index) => {
@@ -18,12 +29,15 @@ printers.map((item, index) => {
 /// load preferences
 if(settings.hasSync('2017.url')) {
   document.getElementById("url_2017").value = settings.getSync('2017.url');
+  document.getElementById("terminal_2017").value = settings.getSync('2017.terminal') ?? '0';
+  document.getElementById("timer_2017").value = settings.getSync('2017.timer') ?? '0';
+  setTimer2017();
 }
 if(settings.hasSync('2020.url')) {
   document.getElementById("url_2020").value = settings.getSync('2020.url');
   document.getElementById("key_2020").value = settings.getSync('2020.key');
-  document.getElementById("cut_code_2020").value = settings.getSync('2020.cut') ?? '27.105';
-  document.getElementById("open_code_2020").value = settings.getSync('2020.open') ?? '27.112.48';
+  document.getElementById("cut_2020").value = settings.getSync('2020.cut') ?? '27.105';
+  document.getElementById("open_2020").value = settings.getSync('2020.open') ?? '27.112.48';
 }
 
 function prinTest() {
@@ -43,6 +57,9 @@ function test2017() {
     url2017 = url2017.substring(0, url2017.length - 8);
   }
 
+  var terminal2017 = document.getElementById("terminal_2017").value ?? '0';
+  var timer2017 = document.getElementById("timer_2017").value ?? '0';
+
   fetch(url2017 + '/api.php?v=2').then(function(response) {
     response.text().then(function (body) {
       if(body != 'Ninguna funcion ejecutada.') {
@@ -51,16 +68,14 @@ function test2017() {
       }
 
       alert('Datos guardados correctamente');
-      settings.setSync('2017', {url: url2017});
+      settings.setSync('2017', {url: url2017, terminal: terminal2017, timer: timer2017});
+      setTimer2017();
     });
     return false;
   });
 }
 
 function test2020() {
-  var cutCode = document.getElementById("cut_code_2020").value ?? '';
-  var openCode = document.getElementById("open_code_2020").value ?? '';
-
   var url2020 = document.getElementById("url_2020").value;
   if(url2020.substring(0, 7) != 'http://' && url2020.substring(0, 8) != 'https://') {
     alert('URL incorrecta');
@@ -73,6 +88,9 @@ function test2020() {
     return false;
   }
 
+  var cut2020 = document.getElementById("cut_2020").value ?? '';
+  var open2020 = document.getElementById("open_2020").value ?? '';
+
   const apiClient = axios.create({
     baseURL: url2020,
     headers: {
@@ -83,7 +101,7 @@ function test2020() {
     // handle success
     console.log(response);
     alert('Datos guardados correctamente');
-    settings.setSync('2020', {url: url2020, key: key2020, cut: cutCode, open: openCode});
+    settings.setSync('2020', {url: url2020, key: key2020, cut: cut2020, open: open2020});
   })
   .catch(function (error) {
     // handle error

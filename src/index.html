@@ -55,7 +55,10 @@
                     </div>
                     <div class="col-sm-12">
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="key_2020" placeholder="Clave de API" />
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="key_2020" placeholder="Clave de API" />
+                                <button class="btn btn-primary" type="submit" onclick="test2020();">Comprobar</button>
+                            </div>
                             <div class="form-text">
                                 También necesitas una clave de API. Puedes crearla desde FacturaScripts,
                                 en el menú Administrador &gt; Panel de control &gt; API keys.
@@ -64,7 +67,7 @@
                     </div>
                     <div class="col-sm-6">
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="cut_code_2020" placeholder="Comando de corte" />
+                            <input type="text" class="form-control" id="cut_2020" placeholder="Comando de corte" />
                             <div class="form-text">
                                 Comando de <b>corte</b> para la impresora. Ejemplo: 27.105
                             </div>
@@ -72,15 +75,10 @@
                     </div>
                     <div class="col-sm-6">
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="open_code_2020" placeholder="Comando de apertura" />
+                            <input type="text" class="form-control" id="open_2020" placeholder="Comando de apertura" />
                             <div class="form-text">
                                 Comando de <b>apertura de cajón</b> para la impresora. Ejemplo: 27.112.48
                             </div>
-                        </div>
-                    </div>
-                    <div class="col">
-                        <div class="mb-3">
-                            <button class="btn btn-primary" onclick="test2020();">Comprobar</button>
                         </div>
                     </div>
                 </div>
@@ -91,15 +89,38 @@
                 <div class="row">
                     <div class="col-sm-12">
                         <div class="mb-3">
-                            <input type="text" class="form-control" id="url_2017" placeholder="https://" />
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="url_2017" placeholder="https://" />
+                                <button class="btn btn-primary" type="submit" onclick="test2017();">Comprobar</button>
+                            </div>
                             <div class="form-text">
                                 Para conectar con FacturaScripts 2017 escribe aquí la url donde tengas FacturaScripts.
                             </div>
                         </div>
                     </div>
-                    <div class="col">
+                </div>
+                <div class="row">
+                    <div class="col-sm-12">
+                        <h2 class="h4 mt-3">Opcional</h2>
+                        <p class="form-text">
+                            Si tienes problemas al imprimir, puedes configurar aquí la impresión de todos
+                            los tickets pendientes de un terminal concreto.
+                        </p>
+                    </div>
+                    <div class="col-sm-6">
                         <div class="mb-3">
-                            <button class="btn btn-primary" onclick="test2017();">Comprobar</button>
+                            <input type="number" min="0" max="99" step="1" class="form-control" id="terminal_2017" />
+                            <div class="form-text">
+                                Número de terminal.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="mb-3">
+                            <input type="number" min="0" max="99" step="1" class="form-control" id="timer_2017" />
+                            <div class="form-text">
+                                Comprobar cada X segundos.
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -73,7 +73,7 @@ function connect2020(params) {
 function createWindow () {
   const win = new BrowserWindow({
     width: 600,
-    height: 680,
+    height: 620,
     webPreferences: {
       contextIsolation: false,
       enableRemoteModule: true,
@@ -153,6 +153,27 @@ app.on('activate', () => {
 ipcMain.on('print-test', (event, arg) => {
   prinTesTicket(arg);
   event.reply('print-test', 'ok');
+})
+
+ipcMain.on('timer-2017', (event, arg) => {
+  var url2017 = settings.getSync('2017.url');
+    fetch(url2017 + '/api.php?v=2&f=remote_printer&terminal=' + settings.getSync('2017.terminal')).then(function(response) {
+      response.text().then(function (body) {
+        if(0 == body.trim().length) {
+          return;
+        }
+
+        /// save body response to file
+        fs.writeFile("pos.txt", body, function(err) {
+          if(err) {
+            return console.log(err);
+          }
+
+          prinTicket(settings.getSync('printer.name'));
+        });
+      });
+    });
+  event.reply('timer-2017', 'ok');
 })
 
 /// http server
