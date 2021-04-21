@@ -22,8 +22,8 @@ if(settings.hasSync('2017.url')) {
 if(settings.hasSync('2020.url')) {
   document.getElementById("url_2020").value = settings.getSync('2020.url');
   document.getElementById("key_2020").value = settings.getSync('2020.key');
-  document.getElementById("cut_code_2020").value = settings.getSync('2020.cut');
-  document.getElementById("open_code_2020").value = settings.getSync('2020.open');
+  document.getElementById("cut_code_2020").value = settings.getSync('2020.cut') ?? '27.105';
+  document.getElementById("open_code_2020").value = settings.getSync('2020.open') ?? '27.112.48';
 }
 
 function prinTest() {

@@ -39,25 +39,20 @@ function connect2020(params) {
       }
     });
     apiClient.get('/api/3/ticketes/' + params).then(function (response) {
-      /// add cut and open command and save ticket to file
-      let ticket = response.data.text;
+      var ticket = response.data.text;
 
-      let command = settings.getSync('2020.cut') ?? '';
-      let commandData = command.split('.');
-
-      console.log(String.fromCharCode(...commandData));
-
-      if (commandData.length > 0 && response.data.cortarpapel) {
-        ticket += String.fromCharCode(...commandData);
+      /// apply cut command
+      var cutCode = settings.getSync('2020.cut') ?? '27.105';
+      var cutComm = cutCode.split('.');
+      if (cutComm.length > 0 && response.data.cortarpapel) {
+        ticket += String.fromCharCode(...cutComm);
       }
 
-      command = settings.getSync('2020.open') ?? '';
-      commandData = command.split('.');
-
-      console.log(String.fromCharCode(...commandData));
-
-      if (commandData.length > 0 && response.data.abrircajon) {
-        ticket += String.fromCharCode(...commandData);
+      /// apply open command
+      var openCode = settings.getSync('2020.open') ?? '27.112.48';
+      var openComm = openCode.split('.');
+      if (openComm.length > 0 && response.data.abrircajon) {
+        ticket += String.fromCharCode(...openComm);
       }
 
       fs.writeFile("pos.txt", ticket, function(err) {
