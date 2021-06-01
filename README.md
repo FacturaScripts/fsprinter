@@ -11,3 +11,6 @@ npm start
 ```
 npm run make
 ```
+
+## Contact or feedback
+https://facturascripts.com/remote-printer

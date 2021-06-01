@@ -8,9 +8,22 @@ function timer2017() {
   ipcRenderer.send('timer-2017');
 }
 function setTimer2017() {
-  if(settings.hasSync('2017.url') && document.getElementById("terminal_2017").value != '0' && document.getElementById("timer_2017").value != '0') {
+  if(settings.hasSync('2017.url') &&
+    parseInt(document.getElementById("terminal_2017").value) > 0 &&
+    parseInt(document.getElementById("timer_2017").value) > 0) {
     var seconds = parseInt(document.getElementById("timer_2017").value);
     var myTimer2017 = setInterval(timer2017, seconds * 1000);
+  }
+}
+
+/// timer 2020 functions
+function timer2020() {
+  ipcRenderer.send('timer-2020');
+}
+function setTimer2020() {
+  if(settings.hasSync('2020.url') && parseInt(document.getElementById("timer_2020").value) > 0) {
+    var seconds = parseInt(document.getElementById("timer_2020").value);
+    var myTimer2020 = setInterval(timer2020, seconds * 1000);
   }
 }
 
@@ -29,15 +42,25 @@ printers.map((item, index) => {
 /// load preferences
 if(settings.hasSync('2017.url')) {
   document.getElementById("url_2017").value = settings.getSync('2017.url');
-  document.getElementById("terminal_2017").value = settings.getSync('2017.terminal') ?? '0';
-  document.getElementById("timer_2017").value = settings.getSync('2017.timer') ?? '0';
+  document.getElementById("terminal_2017").value = settings.getSync('2017.terminal') ?? '1';
+  document.getElementById("timer_2017").value = settings.getSync('2017.timer') ?? '10';
   setTimer2017();
+} else {
+  document.getElementById("terminal_2017").value = '1';
+  document.getElementById("timer_2017").value = '10';
 }
+
 if(settings.hasSync('2020.url')) {
   document.getElementById("url_2020").value = settings.getSync('2020.url');
+  document.getElementById("timer_2020").value = settings.getSync('2020.timer') ?? '10';
   document.getElementById("key_2020").value = settings.getSync('2020.key');
   document.getElementById("cut_2020").value = settings.getSync('2020.cut') ?? '27.105';
   document.getElementById("open_2020").value = settings.getSync('2020.open') ?? '27.112.48';
+  setTimer2020();
+} else {
+  document.getElementById("timer_2020").value = '10';
+  document.getElementById("cut_2020").value = '27.105';
+  document.getElementById("open_2020").value = '27.112.48';
 }
 
 function prinTest() {
@@ -57,8 +80,8 @@ function test2017() {
     url2017 = url2017.substring(0, url2017.length - 8);
   }
 
-  var terminal2017 = document.getElementById("terminal_2017").value ?? '0';
-  var timer2017 = document.getElementById("timer_2017").value ?? '0';
+  var terminal2017 = document.getElementById("terminal_2017").value ?? '1';
+  var timer2017 = document.getElementById("timer_2017").value ?? '10';
 
   fetch(url2017 + '/api.php?v=2').then(function(response) {
     response.text().then(function (body) {
@@ -90,6 +113,7 @@ function test2020() {
 
   var cut2020 = document.getElementById("cut_2020").value ?? '';
   var open2020 = document.getElementById("open_2020").value ?? '';
+  var timer2020 = document.getElementById("timer_2020").value ?? '10';
 
   const apiClient = axios.create({
     baseURL: url2020,
@@ -101,7 +125,8 @@ function test2020() {
     // handle success
     console.log(response);
     alert('Datos guardados correctamente');
-    settings.setSync('2020', {url: url2020, key: key2020, cut: cut2020, open: open2020});
+    settings.setSync('2020', {url: url2020, key: key2020, cut: cut2020, open: open2020, timer: timer2020});
+    setTimer2020();
   })
   .catch(function (error) {
     // handle error

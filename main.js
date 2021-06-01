@@ -176,11 +176,59 @@ ipcMain.on('timer-2017', (event, arg) => {
   event.reply('timer-2017', 'ok');
 })
 
+ipcMain.on('timer-2020', (event, arg) => {
+  if(settings.hasSync('2020.url')) {
+    const apiClient = axios.create({
+      baseURL: settings.getSync('2020.url'),
+      headers: {
+        Token: settings.getSync('2020.key')
+      }
+    });
+    /// get all tickets
+    apiClient.get('/api/3/ticketes').then(function (response) {
+      response.data.forEach(element => {
+        var ticket = element.text;
+
+        /// apply cut command
+        var cutCode = settings.getSync('2020.cut') ?? '27.105';
+        var cutComm = cutCode.split('.');
+        if (cutComm.length > 0 && element.cortarpapel) {
+          ticket += String.fromCharCode(...cutComm);
+        }
+
+        /// apply open command
+        var openCode = settings.getSync('2020.open') ?? '27.112.48';
+        var openComm = openCode.split('.');
+        if (openComm.length > 0 && element.abrircajon) {
+          ticket += String.fromCharCode(...openComm);
+        }
+
+        /// print
+        fs.writeFile("pos.txt", ticket, function(err) {
+          if(err) {
+            return console.log(err);
+          }
+
+          prinTicket(settings.getSync('printer.name'));
+        });
+
+        /// delete
+        apiClient.delete('/api/3/ticketes/' + element.coddocument);
+      });
+    })
+    .catch(function (error) {
+      // handle error
+      console.log(error);
+    });
+  }
+  event.reply('timer-2020', 'ok');
+})
+
 /// http server
 const http = require('http');
 const requestListener = function (req, res) {
   res.writeHead(200);
-  res.end('fsprinter 0.0.1');
+  res.end('fsprinter 0.4.0');
   console.log('http request: ' + req.url);
   if(req.url.substring(0, 12) == '/?documento=') {
     connect2020(req.url.substring(12));

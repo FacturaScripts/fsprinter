@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>fsprinter 0.3.0</title>
+    <title>fsprinter 0.4.0</title>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
     <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css" />
 </head>
@@ -45,11 +45,19 @@
         <div class="tab-pane active" id="fs2020" role="tabpanel" aria-labelledby="fs2020-tab">
             <div class="container mt-4">
                 <div class="row">
-                    <div class="col-sm-12">
+                    <div class="col-sm-8">
                         <div class="mb-3">
                             <input type="text" class="form-control" id="url_2020" placeholder="https://" />
                             <div class="form-text">
                                 Para conectar con FacturaScripts 2021 escribe aquí la url donde tengas FacturaScripts.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="mb-3">
+                            <input type="number" min="2" max="99" step="1" class="form-control" id="timer_2020" />
+                            <div class="form-text">
+                                Comprobar cada X segundos.
                             </div>
                         </div>
                     </div>
@@ -117,7 +125,7 @@
                     </div>
                     <div class="col-sm-6">
                         <div class="mb-3">
-                            <input type="number" min="0" max="99" step="1" class="form-control" id="timer_2017" />
+                            <input type="number" min="2" max="99" step="1" class="form-control" id="timer_2017" />
                             <div class="form-text">
                                 Comprobar cada X segundos.
                             </div>
