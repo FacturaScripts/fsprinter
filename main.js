@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain } = require('electron');
 const { exec } = require('child_process');
 const axios = require('axios');
 const fetch = require("node-fetch");
@@ -121,12 +121,14 @@ function prinTesTicket(printerName) {
 function prinTicket(printerName) {
   var printCmd = "lp -d " + printerName + " pos.txt";
   if(os.platform() == 'win32') {
-    printCmd = app.getAppPath() + "\\" + 'RawPrint.exe "' + printerName + '" pos.txt';
+    var fullPath = app.getAppPath() + "\\";
+    printCmd = fullPath + 'RawPrint.exe "' + printerName + '" ' + fullPath + 'pos.txt';
   }
 
   exec(printCmd, (error, stdout, stderr) => {
     if (error) {
       console.log(`error: ${error.message}`);
+      dialog.showErrorBox("print error", error.message);
       return;
     }
     if (stderr) {
@@ -228,7 +230,7 @@ ipcMain.on('timer-2020', (event, arg) => {
 const http = require('http');
 const requestListener = function (req, res) {
   res.writeHead(200);
-  res.end('fsprinter 0.4.0');
+  res.end('fsprinter 0.5.0');
   console.log('http request: ' + req.url);
   if(req.url.substring(0, 12) == '/?documento=') {
     connect2020(req.url.substring(12));
@@ -237,4 +239,4 @@ const requestListener = function (req, res) {
   }
 }
 const server = http.createServer(requestListener);
-server.listen(10080);
+server.listen(8089);

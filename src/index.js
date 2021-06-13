@@ -90,8 +90,8 @@ function test2017() {
         return false;
       }
 
-      alert('Datos guardados correctamente');
       settings.setSync('2017', {url: url2017, terminal: terminal2017, timer: timer2017});
+      alert('Datos guardados correctamente');
       setTimer2017();
     });
     return false;
@@ -123,9 +123,8 @@ function test2020() {
   });
   apiClient.get('/api/3').then(function (response) {
     // handle success
-    console.log(response);
-    alert('Datos guardados correctamente');
     settings.setSync('2020', {url: url2020, key: key2020, cut: cut2020, open: open2020, timer: timer2020});
+    alert('Datos guardados correctamente');
     setTimer2020();
   })
   .catch(function (error) {
