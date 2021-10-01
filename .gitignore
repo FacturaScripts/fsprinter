@@ -3,5 +3,6 @@
 /vendor/
 package-lock.json
 pos.txt
-*.lock
 out/
+ticket
+*.lock
