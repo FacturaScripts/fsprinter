@@ -1,6 +1,6 @@
 {
   "name": "fsprinter",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Electron app to connect printers to FacturaScripts",
   "main": "main.js",
   "scripts": {

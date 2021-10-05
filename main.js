@@ -144,7 +144,7 @@ ipcMain.on('print-2020', (event, element) => {
 const http = require('http');
 const requestListener = function (req, res) {
   res.writeHead(200);
-  res.end('fsprinter 0.6.0');
+  res.end('fsprinter 0.6.1');
   console.log('http request: ' + req.url);
 
   // send a message to the main window
