@@ -6,3 +6,4 @@ pos.txt
 out/
 ticket
 *.lock
+.DS_Store
