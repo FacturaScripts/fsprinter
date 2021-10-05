@@ -109,10 +109,10 @@ ipcMain.on('print-2017', (event, arg) => {
   event.reply('print-2017', 'ok');
 })
 
-ipcMain.on('print-2020', (event, arg) => {
+ipcMain.on('print-2020', (event, element) => {
   console.log('print-2020');
 
-  var ticket = arg;
+  var ticket = element.text;
 
   // apply cut command
   var cutCode = settings.getSync('2020.cut') ?? '27.105';

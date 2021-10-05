@@ -50,8 +50,9 @@ async function connect2020(params) {
       }
     });
     const response = await apiClient.get('/api/3/ticketes/' + params);
-    if (0 > response.data.text.trim().length) {
-      ipcRenderer.send('print-2020', response.data.text);
+    if (0 < response.data.text.trim().length) {
+      ipcRenderer.send('print-2020', response.data);
+      apiClient.delete('/api/3/ticketes/' + response.data.coddocument);
     }
   } catch (err) {
     alert('La conexión con fs falló' + err);
@@ -161,7 +162,7 @@ function timer2020() {
   /// get all tickets
   apiClient.get('/api/3/ticketes').then(function (response) {
     response.data.forEach(element => {
-      ipcRenderer.send('print-2020', element.text);
+      ipcRenderer.send('print-2020', element);
 
       /// delete
       apiClient.delete('/api/3/ticketes/' + element.coddocument);
