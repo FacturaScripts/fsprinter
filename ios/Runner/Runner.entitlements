@@ -2,9 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Push APNs (avisos de impresión vía FCM). Xcode lo cambia a
-	     "production" automáticamente al distribuir. -->
+	<!-- Push APNs (avisos de impresión vía FCM) deshabilitado temporalmente:
+	     requiere cuenta de pago Apple Developer Program. Descomentar al
+	     disponer de dicha cuenta.
 	<key>aps-environment</key>
 	<string>development</string>
+	-->
 </dict>
 </plist>
