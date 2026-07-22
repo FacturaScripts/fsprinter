@@ -3,7 +3,12 @@ name: Build
 on:
   release:
     types: [published]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      tag:
+        description: 'Tag de la release a compilar y publicar'
+        required: false
+        type: string
 
 jobs:
   build:
@@ -57,7 +62,7 @@ jobs:
   release:
     name: Publish release
     needs: build
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || github.event_name == 'workflow_call'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -67,8 +72,90 @@ jobs:
         with:
           path: artifacts
 
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v3
+      - name: Rellenar título/notas si faltan y adjuntar binarios
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+
+          # Rellenar el título si la release no tiene nombre
+          NAME=$(gh release view "$TAG" --json name --jq '.name // ""')
+          if [ -z "$NAME" ]; then
+            echo "La release no tiene título; se establece a $TAG"
+            gh release edit "$TAG" --title "$TAG"
+          fi
+
+          # Rellenar la descripción con notas generadas si está vacía
+          BODY=$(gh release view "$TAG" --json body --jq '.body // ""')
+          if [ -z "$BODY" ]; then
+            echo "La release no tiene descripción; se generan notas automáticas"
+            NOTES=$(gh api "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+              -f tag_name="$TAG" --jq '.body')
+            gh release edit "$TAG" --notes "$NOTES"
+          fi
+
+          # Adjuntar todos los binarios generados a la release
+          mapfile -t FILES < <(find artifacts -type f)
+          if [ "${#FILES[@]}" -eq 0 ]; then
+            echo "No se encontraron binarios en artifacts/" >&2
+            exit 1
+          fi
+          gh release upload "$TAG" "${FILES[@]}" --clobber
+
+  update-download-page:
+    name: Actualizar URLs de descarga en tickets
+    needs: release
+    if: github.event_name == 'release' || github.event_name == 'workflow_call'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout fsprinter (script)
+        uses: actions/checkout@v6
+
+      - name: Checkout tickets
+        uses: actions/checkout@v6
         with:
-          files: artifacts/**/*
-          generate_release_notes: true
+          repository: FacturaScripts/tickets
+          token: ${{ secrets.TICKETS_PAT }}
+          path: tickets
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Reescribir URLs de descarga en el twig
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" \
+            --json assets --jq '.assets[].name' > assets.txt
+          echo "Assets de la release:"
+          cat assets.txt
+          node .github/scripts/update-download-page.js \
+            "$TAG" assets.txt tickets/View/Tab/DownloadPrinterApp.html.twig
+
+      - name: Crear rama, commit y PR en tickets
+        env:
+          GH_TOKEN: ${{ secrets.TICKETS_PAT }}
+          TAG: ${{ inputs.tag || github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          cd tickets
+          if git diff --quiet; then
+            echo "El twig no ha cambiado; no se crea PR."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          BRANCH="update-fsprinter-$TAG"
+          git checkout -B "$BRANCH"
+          git add View/Tab/DownloadPrinterApp.html.twig
+          git commit -m "Actualiza URLs de descarga de FSPrinter a $TAG"
+          git push -f -u origin "$BRANCH"
+          gh pr create -R FacturaScripts/tickets --base main --head "$BRANCH" \
+            --title "Actualiza URLs de descarga de FSPrinter a $TAG" \
+            --body "Actualización automática de las URLs de descarga en DownloadPrinterApp tras publicar la release $TAG de fsprinter." \
+            || echo "Ya existe un PR para la rama $BRANCH."
