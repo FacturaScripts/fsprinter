@@ -75,6 +75,7 @@ jobs:
       - name: Rellenar título/notas si faltan y adjuntar binarios
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           TAG: ${{ inputs.tag || github.event.release.tag_name }}
         run: |
           set -euo pipefail
