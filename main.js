@@ -189,6 +189,8 @@ ipcMain.handle('settings-unset', async () => {
   return await settings.unset();
 })
 
+ipcMain.handle('get-app-version', () => app.getVersion())
+
 ipcMain.on('print-test', (event, arg) => {
   prinTesTicket(arg);
   event.reply('print-test', 'ok');

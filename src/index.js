@@ -15,6 +15,24 @@ function settingsUnset() {
   return ipcRenderer.invoke('settings-unset');
 }
 
+// devuelve true si la versión a es más nueva que la b, comparando "x.y.z" parte a parte
+function isNewerVersion(a, b) {
+  const partsA = String(a).split('.').map(n => parseInt(n, 10) || 0);
+  const partsB = String(b).split('.').map(n => parseInt(n, 10) || 0);
+  const length = Math.max(partsA.length, partsB.length);
+  for (let i = 0; i < length; i++) {
+    const numA = partsA[i] || 0;
+    const numB = partsB[i] || 0;
+    if (numA > numB) {
+      return true;
+    }
+    if (numA < numB) {
+      return false;
+    }
+  }
+  return false;
+}
+
 let wsConnection = null;
 let wsReconnectTimeout = null;
 let wsConnectionAttempt = 0;
@@ -152,19 +170,27 @@ async function printPendingTickets(apiClient, printerId) {
   const resTickets = await apiClient.get('/api/3/ticketes?filter[printed]=0&filter[idprinter]=' + printerId);
   console.log(resTickets);
 
+  // get the current app version to compare against each ticket's required version
+  const appVersion = await ipcRenderer.invoke('get-app-version');
+
   // find the apikey in resPrinters and update lastactivity
   for (const item of resTickets.data) {
-    if (item.appversion > 1.0) {
+    // if the ticket requires a newer app version than this client, ask to update
+    // and skip it without marking it as printed, so it is retried after updating
+    if (isNewerVersion(item.appversion, appVersion)) {
       alert('Por favor, descarga la nueva versión de la app');
-      // open a browser window with the app url https://megacity20.com/support/59
-      ipcRenderer.send('open-external', 'https://megacity20.com/support/59');
-    } else if (item.base64) {
+      // open a browser window with the app url https://facturascripts.com/remote-printer
+      ipcRenderer.send('open-external', 'https://facturascripts.com/remote-printer');
+      continue;
+    }
+
+    if (item.base64) {
       ipcRenderer.send('send-to-printer', atob(item.body));
     } else {
       ipcRenderer.send('send-to-printer', item.body);
     }
 
-    // set printed to true
+    // set printed to true only when the ticket has actually been sent to the printer
     const resPut = await apiClient.put('/api/3/ticketes/' + item.id, 'printed=1');
   }
 
