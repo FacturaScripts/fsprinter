@@ -1,150 +1,73 @@
 <!DOCTYPE html>
 <html>
-
 <head>
     <meta charset="UTF-8">
-    <title>fsprinter 0.6.1</title>
+    <title>fsprinter 1.4.0</title>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
     <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" />
 </head>
-
 <body>
-    <div class="container mb-4 mt-4">
+    <div class="container">
         <div class="row">
             <div class="col">
-                <h1 class="h3 mb-1">Impresora</h1>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-sm-8">
-                <div class="mb-3">
+                <h1 class="h3 mt-3 mb-1"><i class="bi bi-printer me-2"></i>Impresora</h1>
+                <div class="mb-2">
                     <select class="form-select" id="printer_list" name="printer"></select>
                     <div class="form-text">Selecciona la impresora de tickets que quieras utilizar.</div>
                 </div>
             </div>
+        </div>
+        <div class="row">
             <div class="col">
-                <div class="mb-3">
-                    <button class="btn btn-primary" onclick="prinTest();">Seleccionar</button>
+                <div class="d-grid gap-2 mb-2">
+                    <button class="btn btn-secondary" onclick="testPrinter();"><i class="bi bi-printer me-2"></i>Probar impresora</button>
+                </div>
+            </div>
+            <div class="col">
+                <div class="d-grid gap-2 mb-3">
+                    <button class="btn btn-primary" onclick="testConnection();"><i class="bi bi-wifi me-2"></i>Probar conexión</button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col">
+                <div class="form-floating mb-2 position-relative">
+                    <input type="text" class="form-control pe-5" id="api_url" placeholder="https://" />
+                    <label for="api_url">URL</label>
+                    <button type="button" class="btn btn-sm btn-link text-danger position-absolute top-50 end-0 translate-middle-y me-2 p-1 d-none" id="reset_btn" onclick="resetSettings();" title="Resetear configuración">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+                <div class="form-floating mb-2">
+                    <input type="text" class="form-control" id="api_key" placeholder="Clave de API" />
+                    <label for="api_key">API key</label>
+                </div>
+                <div class="form-floating mb-2">
+                    <input type="number" class="form-control" id="printer_len" min="0" />
+                    <label for="printer_len">Caracteres por línea</label>
+                </div>
+                <div class="form-floating mb-2">
+                    <select class="form-select" id="poll_interval" onchange="onPollIntervalChange();">
+                        <option value="0">Solo WebSocket</option>
+                        <option value="30">30 segundos</option>
+                        <option value="60">1 minuto</option>
+                        <option value="120">2 minutos</option>
+                        <option value="300">5 minutos</option>
+                        <option value="600">10 minutos</option>
+                        <option value="1800">30 minutos</option>
+                    </select>
+                    <label for="poll_interval">Comprobar periódicamente</label>
                 </div>
             </div>
         </div>
     </div>
-    <!-- Nav tabs -->
-    <ul class="nav nav-tabs nav-fill" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="fs2020-tab" data-bs-toggle="tab" data-bs-target="#fs2020" type="button"
-                role="tab" aria-controls="fs2020" aria-selected="true">
-                2021
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="fs2017-tab" data-bs-toggle="tab" data-bs-target="#fs2017" type="button"
-                role="tab" aria-controls="fs2017" aria-selected="false">
-                2017
-            </button>
-        </li>
-    </ul>
-    <!-- Tab panes -->
-    <div class="tab-content">
-        <div class="tab-pane active" id="fs2020" role="tabpanel" aria-labelledby="fs2020-tab">
-            <div class="container mt-4">
-                <div class="row">
-                    <div class="col-sm-8">
-                        <div class="mb-3">
-                            <input type="text" class="form-control" id="url_2020" placeholder="https://" />
-                            <div class="form-text">
-                                Para conectar con FacturaScripts 2021 escribe aquí la url donde tengas FacturaScripts.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-4">
-                        <div class="mb-3">
-                            <input type="number" min="2" max="99" step="1" class="form-control" id="timer_2020" />
-                            <div class="form-text">
-                                Comprobar cada X segundos.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-12">
-                        <div class="mb-3">
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="key_2020" placeholder="Clave de API" />
-                                <button class="btn btn-primary" type="submit" onclick="test2020();">Comprobar</button>
-                            </div>
-                            <div class="form-text">
-                                También necesitas una clave de API. Puedes crearla desde FacturaScripts,
-                                en el menú Administrador &gt; Panel de control &gt; API keys.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="mb-3">
-                            <input type="text" class="form-control" id="cut_2020" placeholder="Comando de corte" />
-                            <div class="form-text">
-                                Comando de <b>corte</b> para la impresora. Ejemplo: 27.105
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="mb-3">
-                            <input type="text" class="form-control" id="open_2020" placeholder="Comando de apertura" />
-                            <div class="form-text">
-                                Comando de <b>apertura de cajón</b> para la impresora. Ejemplo: 27.112.48
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="tab-pane" id="fs2017" role="tabpanel" aria-labelledby="fs2017-tab">
-            <div class="container mt-4">
-                <div class="row">
-                    <div class="col-sm-12">
-                        <div class="mb-3">
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="url_2017" placeholder="https://" />
-                                <button class="btn btn-primary" type="submit" onclick="test2017();">Comprobar</button>
-                            </div>
-                            <div class="form-text">
-                                Para conectar con FacturaScripts 2017 escribe aquí la url donde tengas FacturaScripts.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-sm-12">
-                        <h2 class="h4 mt-3">Opcional</h2>
-                        <p class="form-text">
-                            Si tienes problemas al imprimir, puedes configurar aquí la impresión de todos
-                            los tickets pendientes de un terminal concreto.
-                        </p>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="mb-3">
-                            <input type="number" min="0" max="99" step="1" class="form-control" id="terminal_2017" />
-                            <div class="form-text">
-                                Número de terminal.
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-sm-6">
-                        <div class="mb-3">
-                            <input type="number" min="2" max="99" step="1" class="form-control" id="timer_2017" />
-                            <div class="form-text">
-                                Comprobar cada X segundos.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bottom bar -->
-    <nav class="navbar fixed-bottom navbar-light bg-warning">
-        <div class="container-fluid">
-            <span class="navbar-text">
-                Si cierras esta aplicación no podrás imprimir tickets.
+    
+    <!-- Bottom bar: global status -->
+    <nav class="navbar fixed-bottom navbar-light bg-secondary" id="global_status_bar" title="">
+        <div class="container-fluid justify-content-center">
+            <span class="navbar-text text-white" id="global_status_text">
+                <i class="bi bi-circle-fill me-2"></i>Iniciando…
             </span>
         </div>
     </nav>
@@ -152,5 +75,4 @@
     <script src="../node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="index.js"></script>
 </body>
-
 </html>

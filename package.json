@@ -1,56 +1,73 @@
 {
   "name": "fsprinter",
-  "version": "0.6.1",
-  "description": "Electron app to connect printers to FacturaScripts",
+  "version": "1.4.0",
+  "description": "Electron app to connect printers to FacturaScripts and factura.city",
   "main": "main.js",
   "scripts": {
-    "start": "electron-forge start",
-    "package": "electron-forge package",
-    "make": "electron-forge make"
+    "start": "electron . --no-sandbox",
+    "build": "electron-builder",
+    "build:linux": "electron-builder --linux",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
   },
   "keywords": [],
-  "author": "Carlos García Gómez",
+  "author": {
+    "name": "Carlos García Gómez",
+    "email": "carlos@facturascripts.com"
+  },
   "license": "LGPL-3.0",
   "devDependencies": {
-    "@electron-forge/cli": "^6.0.0-beta.54",
-    "@electron-forge/maker-deb": "^6.0.0-beta.54",
-    "@electron-forge/maker-rpm": "^6.0.0-beta.54",
-    "@electron-forge/maker-squirrel": "^6.0.0-beta.54",
-    "@electron-forge/maker-zip": "^6.0.0-beta.54",
-    "electron": "^11.2.3"
+    "electron": "^42",
+    "electron-builder": "^26.15.6"
   },
   "dependencies": {
-    "axios": "^0.21.0",
-    "bootstrap": "^5.0.0",
+    "axios": "^1.12.2",
+    "bootstrap": "^5.3.0",
+    "bootstrap-icons": "^1.11.0",
     "electron-settings": "^4.0.2",
-    "electron-squirrel-startup": "^1.0.0",
     "node-fetch": "^2.6.1"
   },
-  "config": {
-    "forge": {
-      "packagerConfig": {},
-      "makers": [
-        {
-          "name": "@electron-forge/maker-squirrel",
-          "config": {
-            "name": "fsprinter"
-          }
-        },
-        {
-          "name": "@electron-forge/maker-zip",
-          "platforms": [
-            "darwin"
-          ]
-        },
-        {
-          "name": "@electron-forge/maker-deb",
-          "config": {}
-        },
-        {
-          "name": "@electron-forge/maker-rpm",
-          "config": {}
-        }
+  "build": {
+    "appId": "com.megacity20.fsprinter",
+    "productName": "FSPrinter",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/**/*",
+      "node_modules/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/**/*",
+      "RawPrint.exe"
+    ],
+    "linux": {
+      "target": [
+        "deb",
+        "rpm",
+        "AppImage"
+      ],
+      "category": "Office"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
       ]
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false,
+      "identity": null
     }
+  },
+  "allowScripts": {
+    "electron-winstaller@5.4.0": true
   }
 }

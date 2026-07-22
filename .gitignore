@@ -1,9 +1,14 @@
 /nbproject/
 /node_modules/
 /vendor/
+/out/
+/dist/
 package-lock.json
 pos.txt
 out/
 ticket
 *.lock
 .DS_Store
+.idea
+.codex
+.claude

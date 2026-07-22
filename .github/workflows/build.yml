@@ -1,0 +1,76 @@
+name: Build
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            script: build:linux
+            artifact: linux
+            paths: |
+              dist/*.AppImage
+              dist/*.deb
+              dist/*.rpm
+          - os: windows-latest
+            script: build:win
+            artifact: windows
+            paths: |
+              dist/*.exe
+          - os: macos-latest
+            script: build:mac
+            artifact: macos
+            paths: |
+              dist/*.dmg
+              dist/*.zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run ${{ matrix.script }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: fsprinter-${{ matrix.artifact }}
+          path: ${{ matrix.paths }}
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+        with:
+          path: artifacts
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true

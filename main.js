@@ -1,23 +1,23 @@
-const { app, BrowserWindow, dialog, ipcMain } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
 const { exec } = require('child_process');
-const axios = require('axios');
-const fetch = require("node-fetch");
 const fs = require('fs');
 const os = require('os');
+const path = require('path');
 const settings = require('electron-settings');
+
+app.commandLine.appendSwitch('no-sandbox');
 
 var win = null;
 
 function createWindow() {
   win = new BrowserWindow({
-    width: 600,
-    height: 620,
+    width: 430,
+    height: 550,
     webPreferences: {
       contextIsolation: false,
-      enableRemoteModule: true,
       nodeIntegration: true
     }
-  });
+  })
 
   win.removeMenu();
   //win.webContents.openDevTools();
@@ -26,12 +26,17 @@ function createWindow() {
 
 function prinTesTicket(printerName) {
   var esc = '\x1B'; //ESC byte in hex notation
+  var gs = '\x1D'; //GS byte in hex notation
   var newLine = '\x0A'; //LF byte in hex notation
   var cmds = esc + "@"; //Initializes the printer (ESC @)
+
+  // Header
   cmds += esc + '!' + '\x38'; //Emphasized + Double-height + Double-width mode selected (ESC ! (8 + 16 + 32)) 56 dec => 38 hex
   cmds += 'PRUEBA'; //text to print
   cmds += newLine + newLine;
   cmds += esc + '!' + '\x00'; //Character font A selected (ESC ! 0)
+
+  // Sample items
   cmds += 'COOKIES                   5.00';
   cmds += newLine;
   cmds += 'MILK 65 Fl oz             3.78';
@@ -45,25 +50,91 @@ function prinTesTicket(printerName) {
   cmds += 'CASH TEND                10.00';
   cmds += newLine;
   cmds += 'CASH DUE                  0.78';
-  cmds += newLine + newLine + newLine + newLine;
+  cmds += newLine + newLine;
 
-  fs.writeFile("ticket", cmds, function (err) {
+  // Print barcode - Code128
+  cmds += esc + 'a' + '\x01'; // Center alignment
+  cmds += 'CODIGO DE BARRAS:';
+  cmds += newLine;
+  cmds += gs + 'h' + '\x50'; // Set barcode height to 80 dots
+  cmds += gs + 'w' + '\x02'; // Set barcode width to 2
+  cmds += gs + 'H' + '\x02'; // Print HRI (human readable) below barcode
+  cmds += gs + 'k' + '\x49' + '\x0D' + '1234567890123'; // CODE128 barcode with content
+  cmds += newLine + newLine;
+
+  // Print QR Code
+  cmds += 'CODIGO QR:';
+  cmds += newLine;
+  // QR Code: Model
+  cmds += gs + '(k' + '\x04\x00' + '1A2\x00'; // Function 165: Set model (49=1, 50=2)
+  // QR Code: Size
+  cmds += gs + '(k' + '\x03\x00' + '1C' + '\x08'; // Function 167: Set size to 8
+  // QR Code: Error correction level
+  cmds += gs + '(k' + '\x03\x00' + '1E0'; // Function 169: Error correction L
+  // QR Code: Store data
+  var qrData = 'https://megacity20.com';
+  var qrDataLength = qrData.length + 3;
+  var pL = String.fromCharCode(qrDataLength % 256);
+  var pH = String.fromCharCode(Math.floor(qrDataLength / 256));
+  cmds += gs + '(k' + pL + pH + '1P0' + qrData; // Function 180: Store data
+  // QR Code: Print
+  cmds += gs + '(k' + '\x03\x00' + '1Q0'; // Function 181: Print QR code
+  cmds += newLine + newLine;
+
+  // Reset alignment
+  cmds += esc + 'a' + '\x00'; // Left alignment
+  cmds += newLine + newLine;
+
+  // add cut command (ESC m - partial cut)
+  cmds += '\x1B\x6D' + newLine;
+
+  // add cash drawer open command (ESC p 0 55 121 - standard command)
+  cmds += '\x1B\x70\x30\x37\x79' + newLine;
+
+  const ticketPath = path.join(app.getPath('temp'), 'fsprinter_ticket');
+  fs.writeFile(ticketPath, cmds, function (err) {
     if (err) {
       return console.log(err);
     }
 
     prinTicket(printerName);
   });
+
+  // volcamos en consola la ruta del archivo
+  console.log('Ticket file path:', ticketPath);
 }
 
 function prinTicket(printerName) {
-  var printCmd = "lp -d " + printerName + " ticket";
+  const ticketPath = path.join(app.getPath('temp'), 'fsprinter_ticket');
+  let printCmd;
+
   if (os.platform() == 'win32') {
-    var fullPath = '"' + app.getAppPath() + "\\";
-    printCmd = fullPath + 'RawPrint.exe" "' + printerName + '" ticket';
+    // Get the resources path properly
+    let resourcesPath;
+    if (app.isPackaged) {
+      // When packaged, unpacked files are in app.asar.unpacked
+      resourcesPath = path.join(process.resourcesPath, 'app.asar.unpacked');
+    } else {
+      // In development, use the app path directly
+      resourcesPath = app.getAppPath();
+    }
+
+    const rawPrintPath = path.join(resourcesPath, 'RawPrint.exe');
+    printCmd = '"' + rawPrintPath + '" "' + printerName + '" "' + ticketPath + '"';
+  } else if (os.platform() == 'darwin') {
+    // macOS: usar lp con ruta absoluta
+    printCmd = 'lp -d "' + printerName + '" -o raw "' + ticketPath + '"';
+  } else {
+    // Linux
+    printCmd = 'lp -d "' + printerName + '" "' + ticketPath + '"';
   }
 
+  console.log('Print command:', printCmd);
+
   exec(printCmd, (error, stdout, stderr) => {
+    if(stdout) {
+      console.log(`stdout: ${stdout}`);
+    }
     if (error) {
       console.log(`error: ${error.message}`);
       dialog.showErrorBox("print error", error.message);
@@ -90,15 +161,45 @@ app.on('activate', () => {
   }
 })
 
+ipcMain.handle('get-printers', async () => {
+  return await win.webContents.getPrintersAsync();
+})
+
+ipcMain.on('open-external', (event, url) => {
+  shell.openExternal(url);
+})
+
+ipcMain.on('reload-window', () => {
+  if (win) win.reload();
+})
+
+ipcMain.handle('settings-get', async (event, key) => {
+  return await settings.get(key);
+})
+
+ipcMain.handle('settings-set', async (event, key, value) => {
+  return await settings.set(key, value);
+})
+
+ipcMain.handle('settings-has', async (event, key) => {
+  return await settings.has(key);
+})
+
+ipcMain.handle('settings-unset', async () => {
+  return await settings.unset();
+})
+
 ipcMain.on('print-test', (event, arg) => {
   prinTesTicket(arg);
   event.reply('print-test', 'ok');
 })
 
-ipcMain.on('print-2017', (event, arg) => {
-  console.log('print-2017');
+ipcMain.on('send-to-printer', (event, arg) => {
+  console.log('send-to-printer');
 
-  fs.writeFile("ticket", arg, function (err) {
+  const ticketPath = path.join(app.getPath('temp'), 'fsprinter_ticket');
+  var text = '\x1B' + '@' + arg;
+  fs.writeFile(ticketPath, text, function (err) {
     if (err) {
       return console.log(err);
     }
@@ -106,53 +207,5 @@ ipcMain.on('print-2017', (event, arg) => {
     prinTicket(settings.getSync('printer.name'));
   });
 
-  event.reply('print-2017', 'ok');
+  event.reply('send-to-printer', 'ok');
 })
-
-ipcMain.on('print-2020', (event, element) => {
-  console.log('print-2020');
-
-  var ticket = element.text;
-
-  // apply cut command
-  var cutCode = settings.getSync('2020.cut') ?? '27.105';
-  var cutComm = cutCode.split('.');
-  if (cutComm.length > 0 && element.cortarpapel) {
-    ticket += String.fromCharCode(...cutComm);
-  }
-
-  // apply open command
-  var openCode = settings.getSync('2020.open') ?? '27.112.48';
-  var openComm = openCode.split('.');
-  if (openComm.length > 0 && element.abrircajon) {
-    ticket += String.fromCharCode(...openComm);
-  }
-
-  // print
-  fs.writeFile("ticket", ticket, function (err) {
-    if (err) {
-      return console.log(err);
-    }
-
-    prinTicket(settings.getSync('printer.name'));
-  });
-
-  event.reply('print-2020', 'ok');
-})
-
-// http server
-const http = require('http');
-const requestListener = function (req, res) {
-  res.writeHead(200);
-  res.end('fsprinter 0.6.1');
-  console.log('http request: ' + req.url);
-
-  // send a message to the main window
-  if (req.url.substring(0, 11) == '/?terminal=') {
-    win.webContents.send('http-request-2017', req.url.substring(2));
-  } else if (req.url.substring(0, 12) == '/?documento=') {
-    win.webContents.send('http-request-2020', req.url.substring(12));
-  }
-}
-const server = http.createServer(requestListener);
-server.listen(8089);
