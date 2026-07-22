@@ -62,7 +62,7 @@ jobs:
   release:
     name: Publish release
     needs: build
-    if: github.event_name == 'release' || github.event_name == 'workflow_call'
+    if: github.event_name == 'release' || inputs.tag != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -106,7 +106,7 @@ jobs:
   update-download-page:
     name: Actualizar URLs de descarga en tickets
     needs: release
-    if: github.event_name == 'release' || github.event_name == 'workflow_call'
+    if: github.event_name == 'release' || inputs.tag != ''
     runs-on: ubuntu-latest
     steps:
       - name: Checkout fsprinter (script)
