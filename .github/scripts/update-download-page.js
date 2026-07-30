@@ -30,19 +30,33 @@ const assets = fs.readFileSync(assetsFile, 'utf8')
     .map(s => s.trim())
     .filter(Boolean);
 
-// Devuelve el primer asset cuyo nombre termina en la extensión indicada
-function findAsset(ext) {
-    return assets.find(a => a.toLowerCase().endsWith(ext.toLowerCase()));
+// Devuelve el primer asset cuyo nombre termina en la extensión indicada.
+// Si se indica mustInclude, exige además que el nombre contenga ese texto.
+function findAsset(ext, mustInclude) {
+    return assets.find(a => {
+        const name = a.toLowerCase();
+        if (!name.endsWith(ext.toLowerCase())) {
+            return false;
+        }
+        return !mustInclude || name.includes(mustInclude.toLowerCase());
+    });
 }
 
 let html = fs.readFileSync(twigPath, 'utf8');
 let replacements = 0;
 
-// Extensiones que aparecen como enlaces de descarga en el twig
-const extensions = ['.exe', '.dmg', '.deb', '.rpm', '.AppImage'];
+// Enlaces de descarga que aparecen en el twig. Para Windows hay dos .exe
+// (instalable nsis "Setup" y portable); queremos siempre el instalable.
+const extensions = [
+    { ext: '.exe', mustInclude: 'Setup' },
+    { ext: '.dmg' },
+    { ext: '.deb' },
+    { ext: '.rpm' },
+    { ext: '.AppImage' },
+];
 
-for (const ext of extensions) {
-    const asset = findAsset(ext);
+for (const { ext, mustInclude } of extensions) {
+    const asset = findAsset(ext, mustInclude);
     if (!asset) {
         console.warn(`Aviso: no se encontró ningún asset con extensión ${ext}`);
         continue;
