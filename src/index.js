@@ -33,6 +33,89 @@ function isNewerVersion(a, b) {
   return false;
 }
 
+// URL del asset de la última release para descargar directamente desde la app
+let updateDownloadUrl = null;
+
+// dado el listado de assets de una release de GitHub, busca el que corresponde
+// al sistema operativo actual, replicando el criterio usado en
+// .github/scripts/update-download-page.js (en Windows hay dos .exe: el
+// instalable "Setup" y el portable; siempre queremos el instalable)
+function findPlatformAsset(assets) {
+  let ext;
+  let mustInclude;
+
+  switch (process.platform) {
+    case 'win32':
+      ext = '.exe';
+      mustInclude = 'setup';
+      break;
+    case 'darwin':
+      ext = '.dmg';
+      break;
+    default:
+      ext = '.appimage';
+      break;
+  }
+
+  const asset = assets.find((item) => {
+    const name = String(item.name || '').toLowerCase();
+    if (!name.endsWith(ext)) {
+      return false;
+    }
+    return !mustInclude || name.includes(mustInclude);
+  });
+
+  return asset ? asset.browser_download_url : null;
+}
+
+// comprueba en GitHub si hay una versión de fsprinter más reciente que la instalada
+// y, en tal caso, muestra el aviso fijo de actualización con el enlace de descarga
+async function checkForAppUpdate() {
+  try {
+    const appVersion = await ipcRenderer.invoke('get-app-version');
+    const res = await axios.get('https://api.github.com/repos/FacturaScripts/fsprinter/releases/latest');
+    const latestVersion = String(res.data.tag_name || '').replace(/^v/i, '');
+
+    if (latestVersion && isNewerVersion(latestVersion, appVersion)) {
+      updateDownloadUrl = findPlatformAsset(res.data.assets || []);
+      document.getElementById('update_banner').classList.remove('d-none');
+    }
+  } catch (err) {
+    console.error('No se pudo comprobar la última versión de fsprinter:', err);
+  }
+}
+
+function setDownloadProgress(percent, text) {
+  document.getElementById('update_banner_message').classList.add('d-none');
+  document.getElementById('update_banner_progress').classList.remove('d-none');
+  document.getElementById('update_progress_bar').style.width = percent + '%';
+  document.getElementById('update_progress_text').textContent = text;
+}
+
+ipcRenderer.on('download-progress', (event, percent) => {
+  setDownloadProgress(percent, 'Descargando actualización… ' + percent + '%');
+});
+
+// descarga la nueva versión y abre el instalador al terminar; si no se pudo
+// determinar el asset correcto para el SO actual, lleva a la página de
+// descargas como respaldo
+async function downloadAppUpdate() {
+  if (!updateDownloadUrl) {
+    ipcRenderer.send('open-external', 'https://facturascripts.com/fsprinter');
+    return;
+  }
+
+  setDownloadProgress(0, 'Descargando actualización… 0%');
+
+  try {
+    await ipcRenderer.invoke('download-update', updateDownloadUrl);
+    setDownloadProgress(100, 'Descarga completada. Abriendo instalador y cerrando la app…');
+  } catch (err) {
+    console.error('Error al descargar la actualización:', err);
+    setDownloadProgress(0, 'Error al descargar: ' + (err && err.message ? err.message : String(err)));
+  }
+}
+
 let wsConnection = null;
 let wsReconnectTimeout = null;
 let wsConnectionAttempt = 0;
@@ -179,8 +262,8 @@ async function printPendingTickets(apiClient, printerId) {
     // and skip it without marking it as printed, so it is retried after updating
     if (isNewerVersion(item.appversion, appVersion)) {
       alert('Por favor, descarga la nueva versión de la app');
-      // open a browser window with the app url https://facturascripts.com/remote-printer
-      ipcRenderer.send('open-external', 'https://facturascripts.com/remote-printer');
+      // open a browser window with the app url https://facturascripts.com/fsprinter
+      ipcRenderer.send('open-external', 'https://facturascripts.com/fsprinter');
       continue;
     }
 
@@ -432,6 +515,9 @@ ipcRenderer.invoke('get-printers').then(async (printers) => {
     }
   });
 });
+
+// comprobar si hay una versión más reciente publicada en GitHub
+checkForAppUpdate();
 
 // load preferences
 (async () => {

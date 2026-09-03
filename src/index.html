@@ -2,12 +2,26 @@
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>fsprinter 1.4.1</title>
+    <title>fsprinter 1.5.0</title>
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
     <link rel="stylesheet" href="../node_modules/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="../node_modules/bootstrap-icons/font/bootstrap-icons.css" />
 </head>
 <body>
+    <!-- Top bar: aviso de nueva versión disponible, siempre visible hasta actualizar -->
+    <div class="alert alert-warning text-center mb-0 py-2 d-none" id="update_banner" role="alert">
+        <div id="update_banner_message">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Hay una nueva versión disponible.
+            <a href="#" id="update_download_link" onclick="downloadAppUpdate(); return false;">Descárgala aquí</a>.
+        </div>
+        <div id="update_banner_progress" class="d-none">
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar" id="update_progress_bar" role="progressbar" style="width: 0%"></div>
+            </div>
+            <div class="small mt-1" id="update_progress_text"></div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="row">
             <div class="col">

@@ -9,6 +9,9 @@ app.commandLine.appendSwitch('no-sandbox');
 
 var win = null;
 
+// hosts permitidos para la descarga de actualizaciones desde download-update
+const ALLOWED_UPDATE_HOSTS = new Set(['github.com', 'objects.githubusercontent.com', 'facturascripts.com']);
+
 function createWindow() {
   win = new BrowserWindow({
     width: 430,
@@ -234,6 +237,69 @@ ipcMain.handle('settings-unset', async () => {
 })
 
 ipcMain.handle('get-app-version', () => app.getVersion())
+
+// descarga el instalador de una nueva versión a la carpeta de Descargas,
+// notificando el progreso al renderer, y lo abre automáticamente al terminar
+ipcMain.handle('download-update', async (event, downloadUrl) => {
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(downloadUrl);
+  } catch (err) {
+    throw new Error('URL de descarga inválida');
+  }
+
+  if (parsedUrl.protocol !== 'https:' || !ALLOWED_UPDATE_HOSTS.has(parsedUrl.hostname)) {
+    throw new Error('Host de descarga no permitido: ' + parsedUrl.hostname);
+  }
+
+  const fileName = path.basename(parsedUrl.pathname);
+  const destPath = path.join(app.getPath('downloads'), fileName);
+
+  const response = await fetch(downloadUrl);
+  if (!response.ok || !response.body) {
+    throw new Error('No se pudo descargar el fichero (' + response.status + ')');
+  }
+
+  const totalBytes = parseInt(response.headers.get('content-length') || '0', 10);
+  let receivedBytes = 0;
+
+  const fileStream = fs.createWriteStream(destPath);
+  const reader = response.body.getReader();
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) {
+        break;
+      }
+
+      receivedBytes += value.length;
+      fileStream.write(Buffer.from(value));
+
+      if (totalBytes > 0 && win) {
+        win.webContents.send('download-progress', Math.round((receivedBytes / totalBytes) * 100));
+      }
+    }
+  } finally {
+    fileStream.end();
+  }
+
+  await new Promise((resolve, reject) => {
+    fileStream.on('finish', resolve);
+    fileStream.on('error', reject);
+  });
+
+  const openError = await shell.openPath(destPath);
+  if (openError) {
+    throw new Error('No se pudo abrir el instalador: ' + openError);
+  }
+
+  // el instalador necesita sobrescribir los ficheros de la app, así que hay
+  // que cerrarla; se espera un momento para que el instalador termine de arrancar
+  setTimeout(() => app.quit(), 2000);
+
+  return destPath;
+})
 
 ipcMain.on('print-test', (event, arg) => {
   prinTesTicket(arg);
