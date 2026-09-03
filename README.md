@@ -55,7 +55,6 @@ xattr -dr com.apple.quarantine "/Applications/FSPrinter.app"
 
 ## Project Information
 
-- **Version:** 1.4.1
 - **Author:** Carlos García Gómez
 - **License:** LGPL-3.0
 
