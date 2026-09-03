@@ -346,7 +346,7 @@ function connectWebSocket() {
   // with the API key. The server must apply the same rule.
   const channelInput = isLocalHostname(hostname) ? apiUrl + ':' + apiKey : apiUrl;
   const channel = crypto.createHash('md5').update(channelInput).digest('hex');
-  const wsUrl = `wss://ai.factura.city/mc20printer/${channel}`;
+  const wsUrl = `wss://ai.factura.city/fsprinter/${channel}`;
 
   console.log('Connecting to WebSocket:', wsUrl);
 

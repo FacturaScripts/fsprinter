@@ -1,5 +1,5 @@
 const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
-const { exec } = require('child_process');
+const { exec, execFile } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -92,19 +92,50 @@ function prinTesTicket(printerName) {
   cmds += '\x1B\x70\x30\x37\x79' + newLine;
 
   const ticketPath = path.join(app.getPath('temp'), 'fsprinter_ticket');
-  fs.writeFile(ticketPath, cmds, function (err) {
+  // 'binary' evita que Node reinterprete como UTF-8 los bytes ESC/POS > 127
+  // (código de barras, QR), que deben viajar tal cual a la impresora.
+  fs.writeFile(ticketPath, cmds, 'binary', function (err) {
     if (err) {
       return console.log(err);
     }
 
-    prinTicket(printerName);
+    prinTicket(printerName, function (err, statusMessage) {
+      if (err) {
+        dialog.showErrorBox('Error al imprimir', err.message);
+        return;
+      }
+
+      dialog.showMessageBox(win, {
+        type: 'info',
+        title: 'Prueba de impresión',
+        message: 'Trabajo enviado a la impresora.',
+        detail: statusMessage
+      });
+    });
   });
 
   // volcamos en consola la ruta del archivo
   console.log('Ticket file path:', ticketPath);
 }
 
-function prinTicket(printerName) {
+function checkPrinterQueue(printerName, callback) {
+  execFile('lpstat', ['-p', printerName], (error, stdout) => {
+    if (error) {
+      // lpstat no disponible (p.ej. Windows) o impresora no encontrada en CUPS
+      return callback(null);
+    }
+
+    const status = stdout.trim();
+    if (/desactivada|disabled/i.test(status)) {
+      return callback(new Error('La cola de la impresora está desactivada en el sistema. ' +
+        'Revisa la conexión USB y reactívala (cupsenable "' + printerName + '") o desde Preferencias del Sistema > Impresoras.'));
+    }
+
+    callback(null, status);
+  });
+}
+
+function prinTicket(printerName, callback) {
   const ticketPath = path.join(app.getPath('temp'), 'fsprinter_ticket');
   let printCmd;
 
@@ -137,13 +168,26 @@ function prinTicket(printerName) {
     }
     if (error) {
       console.log(`error: ${error.message}`);
+      if (typeof callback === 'function') return callback(error);
       dialog.showErrorBox("print error", error.message);
       return;
     }
     if (stderr) {
       console.log(`stderr: ${stderr}`);
+      if (typeof callback === 'function') return callback(new Error(stderr));
       return;
     }
+
+    if (os.platform() !== 'darwin' && os.platform() !== 'linux') {
+      // lpstat solo aplica a colas CUPS (macOS/Linux)
+      if (typeof callback === 'function') callback(null);
+      return;
+    }
+
+    checkPrinterQueue(printerName, function (err, status) {
+      if (typeof callback === 'function') callback(err, status);
+      else if (err) console.log(err.message);
+    });
   });
 }
 
@@ -201,12 +245,14 @@ ipcMain.on('send-to-printer', (event, arg) => {
 
   const ticketPath = path.join(app.getPath('temp'), 'fsprinter_ticket');
   var text = '\x1B' + '@' + arg;
-  fs.writeFile(ticketPath, text, function (err) {
+  fs.writeFile(ticketPath, text, 'binary', function (err) {
     if (err) {
       return console.log(err);
     }
 
-    prinTicket(settings.getSync('printer.name'));
+    prinTicket(settings.getSync('printer.name'), function (err) {
+      if (err) console.log(err.message);
+    });
   });
 
   event.reply('send-to-printer', 'ok');
