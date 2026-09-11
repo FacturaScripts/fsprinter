@@ -127,7 +127,8 @@ const globalState = {
   ws: 'disconnected',
   api: 'idle',
   apiMessage: '',
-  apiTime: ''
+  apiTime: '',
+  wsUrl: ''
 };
 
 function wsStateLabel(s) {
@@ -180,6 +181,10 @@ function renderGlobalStatus() {
   } else {
     bg = 'bg-secondary';
     label = 'Desconectado — configura la API para imprimir';
+  }
+
+  if (globalState.wsUrl) {
+    label += ' (…' + globalState.wsUrl.slice(-4) + ')';
   }
 
   bar.className = 'navbar fixed-bottom navbar-light ' + bg;
@@ -430,6 +435,7 @@ function connectWebSocket() {
   const channelInput = isLocalHostname(hostname) ? apiUrl + ':' + apiKey : apiUrl;
   const channel = crypto.createHash('md5').update(channelInput).digest('hex');
   const wsUrl = `wss://ai.factura.city/fsprinter/${channel}`;
+  globalState.wsUrl = wsUrl;
 
   console.log('Connecting to WebSocket:', wsUrl);
 
