@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, dialog, ipcMain, powerMonitor, shell } = require('electron');
 const { exec, execFile } = require('child_process');
 const fs = require('fs');
 const os = require('os');
@@ -19,7 +19,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: false,
       nodeIntegration: true,
-      backgroundThrottling: false 
+      backgroundThrottling: false
     }
   })
 
@@ -207,6 +207,14 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+})
+
+// al volver de la suspensión del sistema el socket suele haber muerto sin
+// avisar, así que se pide al renderer que reconecte sin esperar al heartbeat
+app.whenReady().then(() => {
+  powerMonitor.on('resume', () => {
+    if (win) win.webContents.send('system-resume');
+  });
 })
 
 ipcMain.handle('get-printers', async () => {

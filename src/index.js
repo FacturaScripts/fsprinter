@@ -123,6 +123,32 @@ let connectionPingInFlight = false;
 let connectionPingQueued = false;
 let pollIntervalTimer = null;
 
+/**
+ * Cada cuántos milisegundos se envía un ping al servidor por el WebSocket.
+ * @type {number}
+ */
+const WS_HEARTBEAT_INTERVAL = 30000;
+
+/**
+ * Milisegundos que se espera el pong antes de dar la conexión por muerta.
+ * @type {number}
+ */
+const WS_PONG_TIMEOUT = 10000;
+
+/** @type {?number} temporizador que envía los pings periódicos */
+let wsHeartbeatTimer = null;
+
+/** @type {?number} temporizador que espera el pong del último ping */
+let wsPongTimer = null;
+
+/**
+ * Indica si el servidor ha respondido alguna vez a un ping. Mientras sea false
+ * no se vigila el pong, para no reconectar en bucle contra un servidor antiguo
+ * que no lo envía.
+ * @type {boolean}
+ */
+let wsServerSendsPong = false;
+
 const globalState = {
   ws: 'disconnected',
   api: 'idle',
@@ -400,6 +426,64 @@ function isLocalHostname(hostname) {
   return ['localhost', '127.0.0.1', '[::1]', '::1'].includes(hostname);
 }
 
+/**
+ * Detiene el envío de pings y la espera del pong pendiente, si la hay.
+ */
+function stopHeartbeat() {
+  if (wsHeartbeatTimer) {
+    clearInterval(wsHeartbeatTimer);
+    wsHeartbeatTimer = null;
+  }
+  if (wsPongTimer) {
+    clearTimeout(wsPongTimer);
+    wsPongTimer = null;
+  }
+}
+
+/**
+ * Envía un ping periódico por el socket. Si el servidor ya ha demostrado que
+ * responde con pong y esta vez no lo hace a tiempo, la conexión se considera
+ * muerta (cambio de red, router, suspensión...) y se abre una nueva, porque el
+ * navegador no siempre detecta por sí solo una conexión caída.
+ *
+ * @param {WebSocket} socket socket recién abierto
+ */
+function startHeartbeat(socket) {
+  stopHeartbeat();
+
+  wsHeartbeatTimer = setInterval(function () {
+    if (wsConnection !== socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    socket.send(JSON.stringify({ action: 'ping' }));
+
+    if (wsServerSendsPong && !wsPongTimer) {
+      wsPongTimer = setTimeout(function () {
+        wsPongTimer = null;
+        if (wsConnection === socket) {
+          console.log('No pong received, reconnecting WebSocket');
+          connectWebSocket();
+        }
+      }, WS_PONG_TIMEOUT);
+    }
+  }, WS_HEARTBEAT_INTERVAL);
+}
+
+/**
+ * Reabre el WebSocket si hay una API configurada. Se usa al volver de la
+ * suspensión o al recuperar la red, cuando el socket anterior suele estar muerto.
+ */
+function reconnectWebSocket() {
+  if (document.getElementById("api_url").value.trim()) {
+    console.log('Reconnecting WebSocket after resume or network change');
+    connectWebSocket();
+  }
+}
+
+ipcRenderer.on('system-resume', reconnectWebSocket);
+window.addEventListener('online', reconnectWebSocket);
+
 function connectWebSocket() {
   const rawApiUrl = document.getElementById("api_url").value.trim();
   const apiKey = document.getElementById("api_key").value.trim();
@@ -408,6 +492,8 @@ function connectWebSocket() {
     clearTimeout(wsReconnectTimeout);
     wsReconnectTimeout = null;
   }
+
+  stopHeartbeat();
 
   if (!rawApiUrl) {
     if (wsConnection) {
@@ -462,10 +548,31 @@ function connectWebSocket() {
 
       console.log('WebSocket connected');
       updateWebSocketStatus('connected');
+      startHeartbeat(socket);
+
+      // los avisos enviados mientras el socket estaba caído se han perdido,
+      // así que se buscan los tickets pendientes nada más reconectar
+      connectionPing();
     };
 
     socket.onmessage = function(event) {
       if (wsConnection !== socket || attempt !== wsConnectionAttempt) {
+        return;
+      }
+
+      // el pong solo confirma que la conexión sigue viva: no hay que imprimir
+      let data = null;
+      try {
+        data = JSON.parse(event.data);
+      } catch (err) {
+        // mensaje no JSON: se trata como un aviso de impresión
+      }
+      if (data && data.action === 'pong') {
+        wsServerSendsPong = true;
+        if (wsPongTimer) {
+          clearTimeout(wsPongTimer);
+          wsPongTimer = null;
+        }
         return;
       }
 
@@ -490,6 +597,7 @@ function connectWebSocket() {
       }
 
       wsConnection = null;
+      stopHeartbeat();
       console.log('WebSocket disconnected');
       updateWebSocketStatus('disconnected');
 
